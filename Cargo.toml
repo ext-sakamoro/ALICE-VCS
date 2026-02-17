@@ -1,0 +1,43 @@
+[package]
+name = "alice-vcs"
+version = "0.1.0"
+edition = "2021"
+authors = ["Moroya Sakamoto"]
+description = "Procedural Version Control — Don't diff lines, diff the AST"
+license = "AGPL-3.0"
+repository = "https://github.com/ext-sakamoro/ALICE-VCS"
+keywords = ["vcs", "sdf", "diff", "procedural", "collaboration"]
+categories = ["development-tools", "compression"]
+readme = "README.md"
+
+[lib]
+name = "alice_vcs"
+path = "src/lib.rs"
+
+[features]
+default = []
+std = []
+sdf = ["std"]     # ALICE-SDF AST diff (future)
+sync = ["std"]    # ALICE-Sync P2P replication (future)
+db = ["std"]      # ALICE-DB snapshot storage (future)
+auth = ["std"]    # ALICE-Auth commit signing (future)
+
+[dependencies]
+# ALICE ecosystem integrations (future)
+# alice-sdf = { path = "../ALICE-SDF", optional = true, default-features = false }
+# alice-sync = { path = "../ALICE-Sync", optional = true, default-features = false }
+# alice-db = { path = "../ALICE-DB", optional = true, default-features = false }
+# alice-auth = { path = "../ALICE-Auth", optional = true, default-features = false }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.bench]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+debug = false

@@ -9,6 +9,7 @@ repository = "https://github.com/ext-sakamoro/ALICE-VCS"
 keywords = ["vcs", "sdf", "diff", "procedural", "collaboration"]
 categories = ["development-tools", "compression"]
 readme = "README.md"
+publish = false
 
 [lib]
 name = "alice_vcs"

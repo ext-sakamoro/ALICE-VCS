@@ -51,6 +51,12 @@ pub struct Repository {
     current_branch: String,
 }
 
+impl Default for Repository {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Repository {
     pub fn new() -> Self {
         let mut repo = Self {

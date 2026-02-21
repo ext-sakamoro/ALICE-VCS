@@ -7,6 +7,10 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{string::String, vec, vec::Vec};
+#[cfg(not(feature = "std"))]
+use alloc::collections::BTreeMap as HashMap;
+#[cfg(feature = "std")]
+use std::collections::HashMap;
 
 /// Unique node identifier
 pub type NodeId = u32;
@@ -119,19 +123,30 @@ impl AstNode {
     }
 }
 
-/// AST tree — flat storage of nodes indexed by NodeId
+/// AST tree — flat storage of nodes with O(1) ID lookup via HashMap index
 #[derive(Debug, Clone)]
 pub struct AstTree {
     nodes: Vec<AstNode>,
+    /// Maps NodeId → index in `nodes` Vec for O(1) lookup
+    index: HashMap<NodeId, usize>,
     root_id: NodeId,
     next_id: NodeId,
+}
+
+impl Default for AstTree {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AstTree {
     pub fn new() -> Self {
         let root = AstNode::new(0, AstNodeKind::Root, "root");
+        let mut index = HashMap::new();
+        index.insert(0, 0);
         Self {
             nodes: vec![root],
+            index,
             root_id: 0,
             next_id: 1,
         }
@@ -142,7 +157,9 @@ impl AstTree {
         let id = self.next_id;
         self.next_id += 1;
         let node = AstNode::new(id, kind, label);
+        let idx = self.nodes.len();
         self.nodes.push(node);
+        self.index.insert(id, idx);
         // Add to parent's children
         if let Some(parent) = self.get_node_mut(parent_id) {
             parent.children.push(id);
@@ -165,14 +182,14 @@ impl AstTree {
         id
     }
 
-    /// Get node by ID
+    /// Get node by ID — O(1) via HashMap index
     pub fn get_node(&self, id: NodeId) -> Option<&AstNode> {
-        self.nodes.iter().find(|n| n.id == id)
+        self.index.get(&id).map(|&idx| &self.nodes[idx])
     }
 
-    /// Get mutable node by ID
+    /// Get mutable node by ID — O(1) via HashMap index
     pub fn get_node_mut(&mut self, id: NodeId) -> Option<&mut AstNode> {
-        self.nodes.iter_mut().find(|n| n.id == id)
+        self.index.get(&id).map(|&idx| &mut self.nodes[idx])
     }
 
     /// Root node ID
@@ -213,8 +230,12 @@ impl AstTree {
             }
         }
 
-        // Remove nodes
+        // Remove nodes and rebuild index
         self.nodes.retain(|n| !to_remove.contains(&n.id));
+        self.index.clear();
+        for (idx, node) in self.nodes.iter().enumerate() {
+            self.index.insert(node.id, idx);
+        }
     }
 
     fn collect_subtree(&self, id: NodeId, result: &mut Vec<NodeId>) {
@@ -300,5 +321,17 @@ mod tests {
         let mut tree2 = AstTree::new();
         tree2.add_node(AstNodeKind::Primitive, "sphere", 0);
         assert_eq!(tree1.subtree_hash(0), tree2.subtree_hash(0));
+    }
+
+    #[test]
+    fn test_get_node_o1_lookup() {
+        let mut tree = AstTree::new();
+        let id = tree.add_node(AstNodeKind::Primitive, "sphere", 0);
+        // Verify O(1) lookup returns correct node
+        let node = tree.get_node(id).expect("node must be found");
+        assert_eq!(node.id, id);
+        assert_eq!(node.label, "sphere");
+        // Non-existent ID returns None
+        assert!(tree.get_node(9999).is_none());
     }
 }

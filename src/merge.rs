@@ -7,7 +7,11 @@
 //! Author: Moroya Sakamoto
 
 #[cfg(not(feature = "std"))]
-use alloc::{string::String, vec, vec::Vec};
+use alloc::{string::String, vec::Vec};
+#[cfg(not(feature = "std"))]
+use alloc::collections::BTreeSet as HashSet;
+#[cfg(feature = "std")]
+use std::collections::HashSet;
 
 use crate::diff::DiffOp;
 use crate::ast::NodeId;
@@ -52,7 +56,7 @@ pub fn merge_patches(patch_a: &[DiffOp], patch_b: &[DiffOp]) -> MergeResult {
     let mut merged_ops = Vec::new();
     let mut conflicts = Vec::new();
 
-    // Index: which nodes are affected by each patch
+    // Index: which nodes are affected by each patch — O(1) HashSet lookup
     let affected_a = affected_nodes(patch_a);
     let affected_b = affected_nodes(patch_b);
 
@@ -117,14 +121,11 @@ fn op_target_node(op: &DiffOp) -> NodeId {
     }
 }
 
-/// Collect all node IDs affected by a patch
-fn affected_nodes(ops: &[DiffOp]) -> Vec<NodeId> {
-    let mut nodes = Vec::new();
+/// Collect all unique node IDs affected by a patch — O(1) insert via HashSet
+fn affected_nodes(ops: &[DiffOp]) -> HashSet<NodeId> {
+    let mut nodes = HashSet::new();
     for op in ops {
-        let id = op_target_node(op);
-        if !nodes.contains(&id) {
-            nodes.push(id);
-        }
+        nodes.insert(op_target_node(op));
     }
     nodes
 }
@@ -134,6 +135,8 @@ mod tests {
     use super::*;
     use crate::ast::NodeValue;
     use crate::diff::DiffOp;
+    #[cfg(not(feature = "std"))]
+    use alloc::vec;
 
     #[test]
     fn test_clean_merge_non_overlapping() {

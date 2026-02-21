@@ -6,7 +6,7 @@
 //! Author: Moroya Sakamoto
 
 #[cfg(not(feature = "std"))]
-use alloc::{vec, vec::Vec, collections::BTreeMap};
+use alloc::{vec::Vec, collections::BTreeMap};
 #[cfg(feature = "std")]
 use std::collections::BTreeMap;
 
@@ -27,6 +27,12 @@ struct Snapshot {
 /// Content-addressed snapshot store
 pub struct SnapshotStore {
     snapshots: BTreeMap<Hash, Snapshot>,
+}
+
+impl Default for SnapshotStore {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl SnapshotStore {
@@ -86,6 +92,8 @@ impl SnapshotStore {
 mod tests {
     use super::*;
     use crate::ast::{AstNodeKind, AstTree};
+    #[cfg(not(feature = "std"))]
+    use alloc::vec;
 
     #[test]
     fn test_store_and_retrieve() {

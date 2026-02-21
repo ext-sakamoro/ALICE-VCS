@@ -6,9 +6,9 @@
 //! Author: Moroya Sakamoto
 
 #[cfg(not(feature = "std"))]
-use alloc::{vec::Vec, collections::BTreeMap};
+use alloc::{vec::Vec, collections::BTreeMap as HashMap};
 #[cfg(feature = "std")]
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use crate::ast::AstTree;
 
@@ -24,9 +24,9 @@ struct Snapshot {
     parents: Vec<Hash>,
 }
 
-/// Content-addressed snapshot store
+/// Content-addressed snapshot store (O(1) lookup via HashMap)
 pub struct SnapshotStore {
-    snapshots: BTreeMap<Hash, Snapshot>,
+    snapshots: HashMap<Hash, Snapshot>,
 }
 
 impl Default for SnapshotStore {
@@ -38,7 +38,7 @@ impl Default for SnapshotStore {
 impl SnapshotStore {
     pub fn new() -> Self {
         Self {
-            snapshots: BTreeMap::new(),
+            snapshots: HashMap::new(),
         }
     }
 
@@ -86,6 +86,16 @@ impl SnapshotStore {
     pub fn is_empty(&self) -> bool {
         self.snapshots.is_empty()
     }
+
+    /// List all stored snapshot hashes.
+    pub fn all_hashes(&self) -> Vec<Hash> {
+        self.snapshots.keys().copied().collect()
+    }
+
+    /// Remove a snapshot by hash. Returns `true` if it existed.
+    pub fn remove(&mut self, hash: Hash) -> bool {
+        self.snapshots.remove(&hash).is_some()
+    }
 }
 
 #[cfg(test)]
@@ -94,6 +104,8 @@ mod tests {
     use crate::ast::{AstNodeKind, AstTree};
     #[cfg(not(feature = "std"))]
     use alloc::vec;
+    #[cfg(not(feature = "std"))]
+    use alloc::format;
 
     #[test]
     fn test_store_and_retrieve() {
@@ -130,5 +142,76 @@ mod tests {
         let tree = AstTree::new();
         store.store(&tree, vec![]);
         assert_eq!(store.len(), 1);
+    }
+
+    // ── New tests ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_store_default_is_empty() {
+        let store = SnapshotStore::default();
+        assert!(store.is_empty());
+        assert_eq!(store.len(), 0);
+    }
+
+    #[test]
+    fn test_store_get_nonexistent_returns_none() {
+        let store = SnapshotStore::new();
+        assert!(store.get(0xDEAD_BEEF).is_none());
+    }
+
+    #[test]
+    fn test_store_contains_after_store() {
+        let mut store = SnapshotStore::new();
+        let tree = AstTree::new();
+        let hash = store.store(&tree, vec![]);
+        assert!(store.contains(hash));
+    }
+
+    #[test]
+    fn test_store_remove_returns_true_when_present() {
+        let mut store = SnapshotStore::new();
+        let tree = AstTree::new();
+        let hash = store.store(&tree, vec![]);
+        assert!(store.remove(hash));
+        assert!(!store.contains(hash));
+        assert_eq!(store.len(), 0);
+    }
+
+    #[test]
+    fn test_store_remove_returns_false_when_absent() {
+        let mut store = SnapshotStore::new();
+        assert!(!store.remove(0xABCD));
+    }
+
+    #[test]
+    fn test_all_hashes_matches_len() {
+        let mut store = SnapshotStore::new();
+        let mut tree = AstTree::new();
+        let h0 = store.store(&tree, vec![]);
+        tree.add_node(AstNodeKind::Primitive, "sphere", 0);
+        let h1 = store.store(&tree, vec![h0]);
+        let hashes = store.all_hashes();
+        assert_eq!(hashes.len(), store.len());
+        assert!(hashes.contains(&h0));
+        assert!(hashes.contains(&h1));
+    }
+
+    #[test]
+    fn test_parents_of_root_snapshot_is_empty() {
+        let mut store = SnapshotStore::new();
+        let tree = AstTree::new();
+        let hash = store.store(&tree, vec![]);
+        assert_eq!(store.parents(hash).unwrap(), &[] as &[u64]);
+    }
+
+    #[test]
+    fn test_store_multiple_snapshots() {
+        let mut store = SnapshotStore::new();
+        for i in 0u32..5 {
+            let mut tree = AstTree::new();
+            tree.add_node(AstNodeKind::Primitive, &format!("n{i}"), 0);
+            store.store(&tree, vec![]);
+        }
+        assert_eq!(store.len(), 5);
     }
 }

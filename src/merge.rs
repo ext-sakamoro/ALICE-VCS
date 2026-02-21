@@ -133,7 +133,7 @@ fn affected_nodes(ops: &[DiffOp]) -> HashSet<NodeId> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::NodeValue;
+    use crate::ast::{AstNodeKind, NodeValue};
     use crate::diff::DiffOp;
     #[cfg(not(feature = "std"))]
     use alloc::vec;
@@ -198,5 +198,125 @@ mod tests {
         let result = merge_patches(&[], &[]);
         assert!(result.is_clean());
         assert!(result.merged_ops.is_empty());
+    }
+
+    // ── New tests ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_merge_one_sided_a_only() {
+        let patch_a = vec![DiffOp::Delete { node_id: 5 }];
+        let result = merge_patches(&patch_a, &[]);
+        assert!(result.is_clean());
+        assert_eq!(result.merged_ops.len(), 1);
+    }
+
+    #[test]
+    fn test_merge_one_sided_b_only() {
+        let patch_b = vec![DiffOp::Delete { node_id: 7 }];
+        let result = merge_patches(&[], &patch_b);
+        assert!(result.is_clean());
+        assert_eq!(result.merged_ops.len(), 1);
+    }
+
+    #[test]
+    fn test_merge_conflict_delete_vs_update() {
+        let patch_a = vec![DiffOp::Delete { node_id: 3 }];
+        let patch_b = vec![DiffOp::Update {
+            node_id: 3,
+            old_value: NodeValue::Float(1.0),
+            new_value: NodeValue::Float(2.0),
+        }];
+        let result = merge_patches(&patch_a, &patch_b);
+        assert!(!result.is_clean());
+        assert_eq!(result.conflicts.len(), 1);
+        assert_eq!(result.conflicts[0].node_id, 3);
+    }
+
+    #[test]
+    fn test_merge_conflict_description_present() {
+        let patch_a = vec![DiffOp::Update {
+            node_id: 1,
+            old_value: NodeValue::Int(0),
+            new_value: NodeValue::Int(1),
+        }];
+        let patch_b = vec![DiffOp::Update {
+            node_id: 1,
+            old_value: NodeValue::Int(0),
+            new_value: NodeValue::Int(2),
+        }];
+        let result = merge_patches(&patch_a, &patch_b);
+        assert!(!result.conflicts[0].description.is_empty());
+    }
+
+    #[test]
+    fn test_merge_many_non_overlapping() {
+        let patch_a: Vec<DiffOp> = (0u32..10)
+            .map(|i| DiffOp::Delete { node_id: i })
+            .collect();
+        let patch_b: Vec<DiffOp> = (100u32..110)
+            .map(|i| DiffOp::Delete { node_id: i })
+            .collect();
+        let result = merge_patches(&patch_a, &patch_b);
+        assert!(result.is_clean());
+        assert_eq!(result.merged_ops.len(), 20);
+    }
+
+    #[test]
+    fn test_merge_auto_resolve_relabel() {
+        let op = DiffOp::Relabel {
+            node_id: 10,
+            old_label: String::from("sphere"),
+            new_label: String::from("box"),
+        };
+        let patch_a = vec![op.clone()];
+        let patch_b = vec![op];
+        let result = merge_patches(&patch_a, &patch_b);
+        // Identical ops on same node -> auto-resolved
+        assert!(result.is_clean());
+        assert_eq!(result.merged_ops.len(), 1);
+    }
+
+    #[test]
+    fn test_merge_insert_non_conflicting() {
+        // Inserts go to the same parent but are different nodes; parent_id is the target
+        // node for Insert, so both land on parent 0 -> they conflict under current model
+        let patch_a = vec![DiffOp::Insert {
+            parent_id: 1,
+            index: 0,
+            kind: AstNodeKind::Primitive,
+            label: String::from("sphere"),
+            value: NodeValue::None,
+        }];
+        let patch_b = vec![DiffOp::Insert {
+            parent_id: 2,
+            index: 0,
+            kind: AstNodeKind::Primitive,
+            label: String::from("box"),
+            value: NodeValue::None,
+        }];
+        // Different parent nodes -> non-overlapping -> clean
+        let result = merge_patches(&patch_a, &patch_b);
+        assert!(result.is_clean());
+        assert_eq!(result.merged_ops.len(), 2);
+    }
+
+    #[test]
+    fn test_merge_result_conflict_ops_captured() {
+        let patch_a = vec![DiffOp::Update {
+            node_id: 5,
+            old_value: NodeValue::Float(1.0),
+            new_value: NodeValue::Float(2.0),
+        }];
+        let patch_b = vec![DiffOp::Update {
+            node_id: 5,
+            old_value: NodeValue::Float(1.0),
+            new_value: NodeValue::Float(99.0),
+        }];
+        let result = merge_patches(&patch_a, &patch_b);
+        let c = &result.conflicts[0];
+        assert_eq!(c.ops_a.len(), 1);
+        assert_eq!(c.ops_b.len(), 1);
+        assert!(matches!(&c.ops_a[0], DiffOp::Update { new_value, .. } if *new_value == NodeValue::Float(2.0)));
+        assert!(matches!(&c.ops_b[0], DiffOp::Update { new_value, .. } if *new_value == NodeValue::Float(99.0)));
     }
 }

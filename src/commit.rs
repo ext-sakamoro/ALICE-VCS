@@ -289,4 +289,93 @@ mod tests {
         assert!(names.contains(&"dev"));
         assert!(names.contains(&"feature"));
     }
+
+    // ── New tests ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_repository_default_equals_new() {
+        let r1 = Repository::new();
+        let r2 = Repository::default();
+        assert_eq!(r1.commit_count(), r2.commit_count());
+        assert_eq!(r1.current_branch(), r2.current_branch());
+    }
+
+    #[test]
+    fn test_head_hash_changes_after_commit() {
+        let mut repo = Repository::new();
+        let initial_head = repo.head_hash();
+        let mut tree = AstTree::new();
+        tree.add_node(AstNodeKind::Primitive, "sphere", 0);
+        repo.commit(&tree, "add sphere", "alice");
+        assert_ne!(repo.head_hash(), initial_head);
+    }
+
+    #[test]
+    fn test_head_tree_reflects_latest_commit() {
+        let mut repo = Repository::new();
+        let mut tree = AstTree::new();
+        tree.add_node(AstNodeKind::Primitive, "sphere", 0);
+        repo.commit(&tree, "add sphere", "alice");
+        let head = repo.head_tree().unwrap();
+        assert_eq!(head.node_count(), tree.node_count());
+    }
+
+    #[test]
+    fn test_commit_records_author() {
+        let mut repo = Repository::new();
+        let tree = AstTree::new();
+        let hash = repo.commit(&tree, "msg", "bob");
+        assert_eq!(repo.get_commit(hash).unwrap().author, "bob");
+    }
+
+    #[test]
+    fn test_commit_records_message() {
+        let mut repo = Repository::new();
+        let tree = AstTree::new();
+        let hash = repo.commit(&tree, "hello world", "x");
+        assert_eq!(repo.get_commit(hash).unwrap().message, "hello world");
+    }
+
+    #[test]
+    fn test_commit_has_parent() {
+        let mut repo = Repository::new();
+        let initial_head = repo.head_hash();
+        let tree = AstTree::new();
+        let hash = repo.commit(&tree, "c2", "x");
+        let commit = repo.get_commit(hash).unwrap();
+        assert!(commit.parents.contains(&initial_head));
+    }
+
+    #[test]
+    fn test_checkout_nonexistent_branch_returns_false() {
+        let mut repo = Repository::new();
+        assert!(!repo.checkout("no-such-branch"));
+        assert_eq!(repo.current_branch(), "main"); // unchanged
+    }
+
+    #[test]
+    fn test_branch_head_advances_after_commit_on_branch() {
+        let mut repo = Repository::new();
+        repo.create_branch("feat");
+        repo.checkout("feat");
+        let before = repo.head_hash();
+        let mut tree = AstTree::new();
+        tree.add_node(AstNodeKind::Group, "g", 0);
+        repo.commit(&tree, "on feat", "x");
+        assert_ne!(repo.head_hash(), before);
+    }
+
+    #[test]
+    fn test_diff_between_same_commit_is_empty() {
+        let repo = Repository::new();
+        let h = repo.head_hash();
+        let ops = repo.diff(h, h).unwrap();
+        assert!(ops.is_empty());
+    }
+
+    #[test]
+    fn test_get_commit_nonexistent_returns_none() {
+        let repo = Repository::new();
+        assert!(repo.get_commit(0xDEAD_BEEF_CAFE_BABE).is_none());
+    }
 }

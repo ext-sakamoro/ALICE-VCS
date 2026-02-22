@@ -7,9 +7,9 @@
 //! Author: Moroya Sakamoto
 
 #[cfg(not(feature = "std"))]
-use alloc::{string::String, vec, vec::Vec};
-#[cfg(not(feature = "std"))]
 use alloc::collections::BTreeMap as HashMap;
+#[cfg(not(feature = "std"))]
+use alloc::{string::String, vec, vec::Vec};
 #[cfg(feature = "std")]
 use std::collections::HashMap;
 
@@ -27,9 +27,7 @@ pub enum DiffOp {
         value: NodeValue,
     },
     /// Delete a node (and its subtree)
-    Delete {
-        node_id: NodeId,
-    },
+    Delete { node_id: NodeId },
     /// Update a node's value
     Update {
         node_id: NodeId,
@@ -122,7 +120,7 @@ fn diff_subtree(
         if let Some(new_child) = new.get_node(new_child_id) {
             new_key_to_indices
                 .entry((new_child.kind, new_child.label.clone()))
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(ni);
         }
     }
@@ -272,7 +270,10 @@ mod tests {
         t2.add_node(AstNodeKind::Primitive, "box", 0);
 
         let ops = diff_trees(&t1, &t2);
-        let inserts: Vec<_> = ops.iter().filter(|o| matches!(o, DiffOp::Insert { .. })).collect();
+        let inserts: Vec<_> = ops
+            .iter()
+            .filter(|o| matches!(o, DiffOp::Insert { .. }))
+            .collect();
         assert_eq!(inserts.len(), 1);
     }
 
@@ -286,7 +287,10 @@ mod tests {
         t2.add_node(AstNodeKind::Primitive, "sphere", 0);
 
         let ops = diff_trees(&t1, &t2);
-        let deletes: Vec<_> = ops.iter().filter(|o| matches!(o, DiffOp::Delete { .. })).collect();
+        let deletes: Vec<_> = ops
+            .iter()
+            .filter(|o| matches!(o, DiffOp::Delete { .. }))
+            .collect();
         assert_eq!(deletes.len(), 1);
     }
 
@@ -302,7 +306,10 @@ mod tests {
 
         let ops = diff_trees(&t1, &t2);
         let size = patch_size_bytes(&ops);
-        assert!(size < 20, "value change patch should be < 20 bytes, got {size}");
+        assert!(
+            size < 20,
+            "value change patch should be < 20 bytes, got {size}"
+        );
     }
 
     #[test]
@@ -340,8 +347,14 @@ mod tests {
         t2.add_node(AstNodeKind::Primitive, "cylinder", 0);
 
         let ops = diff_trees(&t1, &t2);
-        let deletes = ops.iter().filter(|o| matches!(o, DiffOp::Delete { .. })).count();
-        let inserts = ops.iter().filter(|o| matches!(o, DiffOp::Insert { .. })).count();
+        let deletes = ops
+            .iter()
+            .filter(|o| matches!(o, DiffOp::Delete { .. }))
+            .count();
+        let inserts = ops
+            .iter()
+            .filter(|o| matches!(o, DiffOp::Insert { .. }))
+            .count();
         assert_eq!(deletes, 1);
         assert_eq!(inserts, 1);
     }
@@ -356,7 +369,10 @@ mod tests {
         t2.add_node(AstNodeKind::Primitive, "c", 0);
 
         let ops = diff_trees(&t1, &t2);
-        let inserts = ops.iter().filter(|o| matches!(o, DiffOp::Insert { .. })).count();
+        let inserts = ops
+            .iter()
+            .filter(|o| matches!(o, DiffOp::Insert { .. }))
+            .count();
         assert_eq!(inserts, 3);
     }
 
@@ -370,7 +386,10 @@ mod tests {
         let t2 = AstTree::new(); // root only
 
         let ops = diff_trees(&t1, &t2);
-        let deletes = ops.iter().filter(|o| matches!(o, DiffOp::Delete { .. })).count();
+        let deletes = ops
+            .iter()
+            .filter(|o| matches!(o, DiffOp::Delete { .. }))
+            .count();
         assert_eq!(deletes, 3);
     }
 
@@ -445,7 +464,10 @@ mod tests {
         t2.add_node_with_value(AstNodeKind::Parameter, "r", NodeValue::Float(5.0), p2);
 
         let ops = diff_trees(&t1, &t2);
-        let updates = ops.iter().filter(|o| matches!(o, DiffOp::Update { .. })).count();
+        let updates = ops
+            .iter()
+            .filter(|o| matches!(o, DiffOp::Update { .. }))
+            .count();
         assert_eq!(updates, 1);
     }
 
@@ -459,8 +481,14 @@ mod tests {
         t2.add_node(AstNodeKind::Group, "x", 0);
 
         let ops = diff_trees(&t1, &t2);
-        let deletes = ops.iter().filter(|o| matches!(o, DiffOp::Delete { .. })).count();
-        let inserts = ops.iter().filter(|o| matches!(o, DiffOp::Insert { .. })).count();
+        let deletes = ops
+            .iter()
+            .filter(|o| matches!(o, DiffOp::Delete { .. }))
+            .count();
+        let inserts = ops
+            .iter()
+            .filter(|o| matches!(o, DiffOp::Insert { .. }))
+            .count();
         assert_eq!(deletes, 1);
         assert_eq!(inserts, 1);
     }
@@ -490,7 +518,10 @@ mod tests {
         t2.add_node(AstNodeKind::Primitive, "sphere", 0);
 
         let ops = diff_trees(&t1, &t2);
-        let inserts = ops.iter().filter(|o| matches!(o, DiffOp::Insert { .. })).count();
+        let inserts = ops
+            .iter()
+            .filter(|o| matches!(o, DiffOp::Insert { .. }))
+            .count();
         assert_eq!(inserts, 1);
     }
 
@@ -699,14 +730,25 @@ mod tests {
             let label = format!("node_{i}");
             let n1 = t1.add_node(AstNodeKind::Primitive, &label, 0);
             let n2 = t2.add_node(AstNodeKind::Primitive, &label, 0);
-            let val1 = if i == 25 { NodeValue::Float(1.0) } else { NodeValue::None };
-            let val2 = if i == 25 { NodeValue::Float(9.9) } else { NodeValue::None };
+            let val1 = if i == 25 {
+                NodeValue::Float(1.0)
+            } else {
+                NodeValue::None
+            };
+            let val2 = if i == 25 {
+                NodeValue::Float(9.9)
+            } else {
+                NodeValue::None
+            };
             t1.add_node_with_value(AstNodeKind::Parameter, "v", val1, n1);
             t2.add_node_with_value(AstNodeKind::Parameter, "v", val2, n2);
         }
 
         let ops = diff_trees(&t1, &t2);
-        let updates = ops.iter().filter(|o| matches!(o, DiffOp::Update { .. })).count();
+        let updates = ops
+            .iter()
+            .filter(|o| matches!(o, DiffOp::Update { .. }))
+            .count();
         assert_eq!(updates, 1, "only one node value changed");
     }
 }

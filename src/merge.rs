@@ -41,7 +41,7 @@ pub struct MergeResult {
 impl MergeResult {
     /// True if merge is clean (no conflicts)
     #[must_use]
-    pub fn is_clean(&self) -> bool {
+    pub const fn is_clean(&self) -> bool {
         self.conflicts.is_empty()
     }
 }
@@ -113,7 +113,7 @@ pub fn merge_patches(patch_a: &[DiffOp], patch_b: &[DiffOp]) -> MergeResult {
 }
 
 /// Get the target node of an operation
-fn op_target_node(op: &DiffOp) -> NodeId {
+const fn op_target_node(op: &DiffOp) -> NodeId {
     match op {
         DiffOp::Insert { parent_id, .. } => *parent_id,
         DiffOp::Delete { node_id }

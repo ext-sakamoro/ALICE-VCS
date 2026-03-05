@@ -45,7 +45,7 @@ pub enum AstNodeKind {
 
 impl AstNodeKind {
     #[must_use]
-    pub fn from_u8(v: u8) -> Self {
+    pub const fn from_u8(v: u8) -> Self {
         match v {
             0 => Self::Root,
             1 => Self::CsgOp,
@@ -80,12 +80,12 @@ pub enum NodeValue {
 impl NodeValue {
     /// Size in bytes when serialized
     #[must_use]
-    pub fn serialized_size(&self) -> usize {
+    pub const fn serialized_size(&self) -> usize {
         match self {
-            NodeValue::None => 1,
-            NodeValue::Int(_) | NodeValue::Float(_) => 9,
-            NodeValue::Text(s) | NodeValue::Ident(s) => 3 + s.len(),
-            NodeValue::Bytes(b) => 3 + b.len(),
+            Self::None => 1,
+            Self::Int(_) | Self::Float(_) => 9,
+            Self::Text(s) | Self::Ident(s) => 3 + s.len(),
+            Self::Bytes(b) => 3 + b.len(),
         }
     }
 }
@@ -207,13 +207,13 @@ impl AstTree {
 
     /// Root node ID
     #[must_use]
-    pub fn root_id(&self) -> NodeId {
+    pub const fn root_id(&self) -> NodeId {
         self.root_id
     }
 
     /// Total node count
     #[must_use]
-    pub fn node_count(&self) -> usize {
+    pub const fn node_count(&self) -> usize {
         self.nodes.len()
     }
 
@@ -386,8 +386,8 @@ mod tests {
     fn test_add_node_with_value_stores_value() {
         let mut tree = AstTree::new();
         let id =
-            tree.add_node_with_value(AstNodeKind::Parameter, "radius", NodeValue::Float(3.14), 0);
-        assert_eq!(tree.get_node(id).unwrap().value, NodeValue::Float(3.14));
+            tree.add_node_with_value(AstNodeKind::Parameter, "radius", NodeValue::Float(3.15), 0);
+        assert_eq!(tree.get_node(id).unwrap().value, NodeValue::Float(3.15));
     }
 
     #[test]
@@ -505,7 +505,7 @@ mod tests {
 
     // ── HashMap O(1) optimisation tests ────────────────────────────────
 
-    /// remove_subtree on a wide tree (many siblings under one parent).
+    /// `remove_subtree` on a wide tree (many siblings under one parent).
     /// Verifies the HashSet-based retain path is correct when many IDs
     /// need to be checked.
     #[test]
@@ -533,8 +533,8 @@ mod tests {
         }
     }
 
-    /// remove_subtree on a deeply nested tree (long chain).
-    /// Exercises the recursive collect_subtree + HashSet path.
+    /// `remove_subtree` on a deeply nested tree (long chain).
+    /// Exercises the recursive `collect_subtree` + `HashSet` path.
     #[test]
     fn test_remove_subtree_deep_chain() {
         let mut tree = AstTree::new();
@@ -559,8 +559,8 @@ mod tests {
         }
     }
 
-    /// Removing a leaf (no children) via remove_subtree should only remove
-    /// that single node — verifying no over-removal by the HashSet path.
+    /// Removing a leaf (no children) via `remove_subtree` should only remove
+    /// that single node — verifying no over-removal by the `HashSet` path.
     #[test]
     fn test_remove_subtree_leaf_only() {
         let mut tree = AstTree::new();
@@ -582,8 +582,8 @@ mod tests {
         assert!(root.children.contains(&c));
     }
 
-    /// After remove_subtree the HashMap index must remain consistent —
-    /// get_node must still work for every surviving node.
+    /// After `remove_subtree` the `HashMap` index must remain consistent —
+    /// `get_node` must still work for every surviving node.
     #[test]
     fn test_remove_subtree_index_consistent_after_removal() {
         let mut tree = AstTree::new();
@@ -603,7 +603,7 @@ mod tests {
         assert!(tree.get_node(keep2).is_some());
     }
 
-    /// remove_subtree followed by add_node should assign a fresh ID and
+    /// `remove_subtree` followed by `add_node` should assign a fresh ID and
     /// work correctly, proving the index rebuild after remove is correct.
     #[test]
     fn test_add_node_after_remove_subtree() {
@@ -620,7 +620,7 @@ mod tests {
     }
 
     /// Removing a sibling group should NOT remove unrelated siblings,
-    /// verifying the HashSet contains exactly the right IDs.
+    /// verifying the `HashSet` contains exactly the right IDs.
     #[test]
     fn test_remove_subtree_does_not_affect_siblings() {
         let mut tree = AstTree::new();
@@ -638,8 +638,8 @@ mod tests {
         assert_eq!(tree.node_count(), 3); // root + g2 + c2
     }
 
-    /// parent_index cleanup: after removing a subtree, parent_of for any
-    /// removed node must return None (HashSet cleanup verification).
+    /// `parent_index` cleanup: after removing a subtree, `parent_of` for any
+    /// removed node must return None (`HashSet` cleanup verification).
     #[test]
     fn test_remove_subtree_clears_parent_index() {
         let mut tree = AstTree::new();
@@ -654,7 +654,7 @@ mod tests {
         assert!(tree.parent_of(gc).is_none());
     }
 
-    /// Subtree hash should remain deterministic even after remove_subtree
+    /// Subtree hash should remain deterministic even after `remove_subtree`
     /// modifies the tree, verifying the index rebuild produces a stable hash.
     #[test]
     fn test_subtree_hash_stable_after_remove() {
@@ -678,7 +678,7 @@ mod tests {
         assert_ne!(tree.subtree_hash(0), hash_before);
     }
 
-    /// Multiple sequential remove_subtree calls must each leave a consistent
+    /// Multiple sequential `remove_subtree` calls must each leave a consistent
     /// index — stress test for the HashMap-based optimisation.
     #[test]
     fn test_multiple_sequential_removals() {
@@ -697,17 +697,17 @@ mod tests {
 
         // 5 removed, 5 remain + root = 6
         assert_eq!(tree.node_count(), 6);
-        for i in 0..10 {
+        for (i, &id) in ids.iter().enumerate().take(10) {
             if i % 2 == 0 {
-                assert!(tree.get_node(ids[i]).is_none(), "ids[{i}] should be gone");
+                assert!(tree.get_node(id).is_none(), "ids[{i}] should be gone");
             } else {
-                assert!(tree.get_node(ids[i]).is_some(), "ids[{i}] should survive");
+                assert!(tree.get_node(id).is_some(), "ids[{i}] should survive");
             }
         }
     }
 
     /// Removing the root's only child makes root a leaf; subsequent
-    /// add_node must still attach under root correctly.
+    /// `add_node` must still attach under root correctly.
     #[test]
     fn test_remove_only_child_then_readd() {
         let mut tree = AstTree::new();

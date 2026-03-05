@@ -51,13 +51,13 @@ pub enum DiffOp {
 impl DiffOp {
     /// Estimated serialized size in bytes
     #[must_use]
-    pub fn serialized_size(&self) -> usize {
+    pub const fn serialized_size(&self) -> usize {
         match self {
-            DiffOp::Insert { label, value, .. } => 8 + label.len() + value.serialized_size(),
-            DiffOp::Delete { .. } => 5,
-            DiffOp::Update { new_value, .. } => 5 + new_value.serialized_size(),
-            DiffOp::Relabel { new_label, .. } => 5 + new_label.len(),
-            DiffOp::Move { .. } => 12,
+            Self::Insert { label, value, .. } => 8 + label.len() + value.serialized_size(),
+            Self::Delete { .. } => 5,
+            Self::Update { new_value, .. } => 5 + new_value.serialized_size(),
+            Self::Relabel { new_label, .. } => 5 + new_label.len(),
+            Self::Move { .. } => 12,
         }
     }
 }
@@ -271,11 +271,12 @@ mod tests {
         t2.add_node(AstNodeKind::Primitive, "box", 0);
 
         let ops = diff_trees(&t1, &t2);
-        let inserts: Vec<_> = ops
-            .iter()
-            .filter(|o| matches!(o, DiffOp::Insert { .. }))
-            .collect();
-        assert_eq!(inserts.len(), 1);
+        assert_eq!(
+            ops.iter()
+                .filter(|o| matches!(o, DiffOp::Insert { .. }))
+                .count(),
+            1
+        );
     }
 
     #[test]
@@ -288,11 +289,12 @@ mod tests {
         t2.add_node(AstNodeKind::Primitive, "sphere", 0);
 
         let ops = diff_trees(&t1, &t2);
-        let deletes: Vec<_> = ops
-            .iter()
-            .filter(|o| matches!(o, DiffOp::Delete { .. }))
-            .collect();
-        assert_eq!(deletes.len(), 1);
+        assert_eq!(
+            ops.iter()
+                .filter(|o| matches!(o, DiffOp::Delete { .. }))
+                .count(),
+            1
+        );
     }
 
     #[test]

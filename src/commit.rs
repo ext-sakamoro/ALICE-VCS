@@ -93,11 +93,9 @@ impl Repository {
         let parent_hash = self.head_hash();
         let parent_tree = self.store.get(parent_hash).cloned();
 
-        let patch = if let Some(ref parent) = parent_tree {
-            diff_trees(parent, tree)
-        } else {
-            vec![]
-        };
+        let patch = parent_tree
+            .as_ref()
+            .map_or_else(Vec::new, |parent| diff_trees(parent, tree));
 
         let hash = self.store.store(tree, vec![parent_hash]);
         let commit = Commit {

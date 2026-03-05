@@ -37,6 +37,7 @@ impl Default for SnapshotStore {
 
 impl SnapshotStore {
     #[must_use]
+    #[allow(clippy::missing_const_for_fn)]
     pub fn new() -> Self {
         Self {
             snapshots: HashMap::new(),

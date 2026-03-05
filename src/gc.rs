@@ -31,7 +31,7 @@ impl GcResult {
     /// True if any snapshots were collected.
     #[inline]
     #[must_use]
-    pub fn did_collect(&self) -> bool {
+    pub const fn did_collect(&self) -> bool {
         self.collected > 0
     }
 }

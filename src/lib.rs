@@ -1,3 +1,16 @@
+#![allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_precision_loss,
+    clippy::cast_sign_loss,
+    clippy::cast_lossless,
+    clippy::similar_names,
+    clippy::many_single_char_names,
+    clippy::module_name_repetitions,
+    clippy::inline_always,
+    clippy::too_many_lines
+)]
+
 //! ALICE-VCS — Procedural Version Control
 //!
 //! Don't diff lines, diff the AST.
@@ -62,6 +75,8 @@ pub mod ast;
 pub mod codec;
 pub mod commit;
 pub mod diff;
+#[cfg(feature = "ffi")]
+pub mod ffi;
 pub mod gc;
 pub mod merge;
 pub mod store;

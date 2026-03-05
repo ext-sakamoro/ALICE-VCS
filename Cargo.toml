@@ -18,6 +18,7 @@ path = "src/lib.rs"
 [features]
 default = []
 std = []
+ffi = ["std"]     # C/C++/C# FFI bindings
 sdf = ["std"]     # ALICE-SDF AST diff (future)
 sync = ["std"]    # ALICE-Sync P2P replication (future)
 db = ["std"]      # ALICE-DB snapshot storage (future)

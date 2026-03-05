@@ -2,6 +2,16 @@
 
 All notable changes to ALICE-VCS will be documented in this file.
 
+## [0.1.1] - 2026-03-04
+
+### Added
+- `ffi` — 20 `extern "C"` FFI functions (AstTree, diff, Repository, branch)
+- Unity C# bindings (`bindings/unity/AliceVcs.cs`) — 20 DllImport + AstTree/Repository classes
+- UE5 C++ header (`bindings/ue5/AliceVcs.h`) — 20 extern C + RAII FAstTree/FRepository wrappers
+
+### Fixed
+- `cargo fmt` trailing whitespace in source files
+
 ## [0.1.0] - 2026-02-23
 
 ### Added

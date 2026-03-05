@@ -6,12 +6,12 @@
 //! Author: Moroya Sakamoto
 
 #[cfg(not(feature = "std"))]
-use alloc::{string::String, vec, vec::Vec, collections::BTreeMap};
+use alloc::{collections::BTreeMap, string::String, vec, vec::Vec};
 #[cfg(feature = "std")]
 use std::collections::BTreeMap;
 
 use crate::ast::AstTree;
-use crate::diff::{diff_trees, apply_patch, DiffOp};
+use crate::diff::{apply_patch, diff_trees, DiffOp};
 use crate::merge::{merge_patches, MergeResult};
 use crate::store::{Hash, SnapshotStore};
 
@@ -58,6 +58,7 @@ impl Default for Repository {
 }
 
 impl Repository {
+    #[must_use]
     pub fn new() -> Self {
         let mut repo = Self {
             store: SnapshotStore::new(),
@@ -171,39 +172,45 @@ impl Repository {
     }
 
     /// Get current HEAD hash
+    #[must_use]
     pub fn head_hash(&self) -> Hash {
         self.branches
             .get(&self.current_branch)
-            .map(|b| b.head)
-            .unwrap_or(0)
+            .map_or(0, |b| b.head)
     }
 
     /// Get current HEAD tree
+    #[must_use]
     pub fn head_tree(&self) -> Option<&AstTree> {
         self.store.get(self.head_hash())
     }
 
     /// Get commit by hash
+    #[must_use]
     pub fn get_commit(&self, hash: Hash) -> Option<&Commit> {
         self.commits.get(&hash)
     }
 
     /// List branches
+    #[must_use]
     pub fn branch_names(&self) -> Vec<&str> {
-        self.branches.keys().map(|s| s.as_str()).collect()
+        self.branches.keys().map(String::as_str).collect()
     }
 
     /// Current branch name
+    #[must_use]
     pub fn current_branch(&self) -> &str {
         &self.current_branch
     }
 
     /// Total commit count
+    #[must_use]
     pub fn commit_count(&self) -> usize {
         self.commits.len()
     }
 
     /// Get diff between two commits
+    #[must_use]
     pub fn diff(&self, from: Hash, to: Hash) -> Option<Vec<DiffOp>> {
         let from_tree = self.store.get(from)?;
         let to_tree = self.store.get(to)?;
@@ -211,7 +218,7 @@ impl Repository {
     }
 }
 
-/// Format helper for no_std
+/// Format helper for `no_std`
 fn alloc_format(template: &str, arg: &str) -> String {
     let mut s = String::from(template);
     if let Some(pos) = s.find("'{}'") {

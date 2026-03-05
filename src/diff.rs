@@ -50,6 +50,7 @@ pub enum DiffOp {
 
 impl DiffOp {
     /// Estimated serialized size in bytes
+    #[must_use]
     pub fn serialized_size(&self) -> usize {
         match self {
             DiffOp::Insert { label, value, .. } => 8 + label.len() + value.serialized_size(),
@@ -64,10 +65,11 @@ impl DiffOp {
 /// Compute diff operations to transform `old` tree into `new` tree
 ///
 /// Uses a simplified tree-edit approach:
-/// 1. Match nodes by (kind, label) between old and new using O(1) HashMap lookup
+/// 1. Match nodes by (kind, label) between old and new using O(1) `HashMap` lookup
 /// 2. Unmatched in old -> Delete
 /// 3. Unmatched in new -> Insert
 /// 4. Matched but changed value -> Update
+#[must_use]
 pub fn diff_trees(old: &AstTree, new: &AstTree) -> Vec<DiffOp> {
     let mut ops = Vec::new();
     diff_subtree(old, new, old.root_id(), new.root_id(), &mut ops);
@@ -81,13 +83,11 @@ fn diff_subtree(
     new_id: NodeId,
     ops: &mut Vec<DiffOp>,
 ) {
-    let old_node = match old.get_node(old_id) {
-        Some(n) => n,
-        None => return,
+    let Some(old_node) = old.get_node(old_id) else {
+        return;
     };
-    let new_node = match new.get_node(new_id) {
-        Some(n) => n,
-        None => return,
+    let Some(new_node) = new.get_node(new_id) else {
+        return;
     };
 
     // Check for label change
@@ -197,7 +197,7 @@ pub fn apply_patch(tree: &mut AstTree, ops: &[DiffOp]) {
                 node_id, new_label, ..
             } => {
                 if let Some(node) = tree.get_node_mut(*node_id) {
-                    node.label = new_label.clone();
+                    node.label.clone_from(new_label);
                 }
             }
             DiffOp::Move {
@@ -221,8 +221,9 @@ pub fn apply_patch(tree: &mut AstTree, ops: &[DiffOp]) {
 }
 
 /// Total patch size in bytes
+#[must_use]
 pub fn patch_size_bytes(ops: &[DiffOp]) -> usize {
-    ops.iter().map(|op| op.serialized_size()).sum()
+    ops.iter().map(DiffOp::serialized_size).sum()
 }
 
 #[cfg(test)]

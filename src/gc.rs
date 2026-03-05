@@ -6,9 +6,9 @@
 //! Author: Moroya Sakamoto
 
 #[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
-#[cfg(not(feature = "std"))]
 use alloc::collections::BTreeSet as HashSet;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
 #[cfg(feature = "std")]
 use std::collections::HashSet;
 
@@ -30,6 +30,7 @@ pub struct GcResult {
 impl GcResult {
     /// True if any snapshots were collected.
     #[inline]
+    #[must_use]
     pub fn did_collect(&self) -> bool {
         self.collected > 0
     }
@@ -100,6 +101,7 @@ fn mark(store: &SnapshotStore, root_hashes: &[Hash]) -> HashSet<Hash> {
 }
 
 /// Dry-run: compute what would be collected without actually removing.
+#[must_use]
 pub fn dry_run(store: &SnapshotStore, root_hashes: &[Hash]) -> GcResult {
     let total_before = store.len();
     let reachable = mark(store, root_hashes);

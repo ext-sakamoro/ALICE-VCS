@@ -6,11 +6,15 @@
 //! Author: Moroya Sakamoto
 
 #[cfg(not(feature = "std"))]
-use alloc::{string::String, vec, vec::Vec};
-#[cfg(not(feature = "std"))]
 use alloc::collections::BTreeMap as HashMap;
+#[cfg(not(feature = "std"))]
+use alloc::collections::BTreeSet as HashSet;
+#[cfg(not(feature = "std"))]
+use alloc::{string::String, vec, vec::Vec};
 #[cfg(feature = "std")]
 use std::collections::HashMap;
+#[cfg(feature = "std")]
+use std::collections::HashSet;
 
 /// Unique node identifier
 pub type NodeId = u32;
@@ -40,6 +44,7 @@ pub enum AstNodeKind {
 }
 
 impl AstNodeKind {
+    #[must_use]
     pub fn from_u8(v: u8) -> Self {
         match v {
             0 => Self::Root,
@@ -74,13 +79,12 @@ pub enum NodeValue {
 
 impl NodeValue {
     /// Size in bytes when serialized
+    #[must_use]
     pub fn serialized_size(&self) -> usize {
         match self {
             NodeValue::None => 1,
-            NodeValue::Int(_) => 9,
-            NodeValue::Float(_) => 9,
-            NodeValue::Text(s) => 3 + s.len(),
-            NodeValue::Ident(s) => 3 + s.len(),
+            NodeValue::Int(_) | NodeValue::Float(_) => 9,
+            NodeValue::Text(s) | NodeValue::Ident(s) => 3 + s.len(),
             NodeValue::Bytes(b) => 3 + b.len(),
         }
     }
@@ -102,6 +106,7 @@ pub struct AstNode {
 }
 
 impl AstNode {
+    #[must_use]
     pub fn new(id: NodeId, kind: AstNodeKind, label: &str) -> Self {
         Self {
             id,
@@ -112,24 +117,26 @@ impl AstNode {
         }
     }
 
+    #[must_use]
     pub fn with_value(mut self, value: NodeValue) -> Self {
         self.value = value;
         self
     }
 
+    #[must_use]
     pub fn with_children(mut self, children: Vec<NodeId>) -> Self {
         self.children = children;
         self
     }
 }
 
-/// AST tree — flat storage of nodes with O(1) ID lookup via HashMap index
+/// AST tree — flat storage of nodes with O(1) ID lookup via `HashMap` index
 #[derive(Debug, Clone)]
 pub struct AstTree {
     nodes: Vec<AstNode>,
-    /// Maps NodeId → index in `nodes` Vec for O(1) lookup
+    /// Maps `NodeId` → index in `nodes` Vec for O(1) lookup
     index: HashMap<NodeId, usize>,
-    /// Maps child NodeId → parent NodeId for O(1) parent lookup
+    /// Maps child `NodeId` → parent `NodeId` for O(1) parent lookup
     parent_index: HashMap<NodeId, NodeId>,
     root_id: NodeId,
     next_id: NodeId,
@@ -142,6 +149,7 @@ impl Default for AstTree {
 }
 
 impl AstTree {
+    #[must_use]
     pub fn new() -> Self {
         let root = AstNode::new(0, AstNodeKind::Root, "root");
         let mut index = HashMap::new();
@@ -186,32 +194,37 @@ impl AstTree {
         id
     }
 
-    /// Get node by ID — O(1) via HashMap index
+    /// Get node by ID — O(1) via `HashMap` index
+    #[must_use]
     pub fn get_node(&self, id: NodeId) -> Option<&AstNode> {
         self.index.get(&id).map(|&idx| &self.nodes[idx])
     }
 
-    /// Get mutable node by ID — O(1) via HashMap index
+    /// Get mutable node by ID — O(1) via `HashMap` index
     pub fn get_node_mut(&mut self, id: NodeId) -> Option<&mut AstNode> {
         self.index.get(&id).map(|&idx| &mut self.nodes[idx])
     }
 
     /// Root node ID
+    #[must_use]
     pub fn root_id(&self) -> NodeId {
         self.root_id
     }
 
     /// Total node count
+    #[must_use]
     pub fn node_count(&self) -> usize {
         self.nodes.len()
     }
 
     /// Get all nodes
+    #[must_use]
     pub fn nodes(&self) -> &[AstNode] {
         &self.nodes
     }
 
     /// Find parent of a node — O(1) via parent index
+    #[must_use]
     pub fn parent_of(&self, id: NodeId) -> Option<NodeId> {
         self.parent_index.get(&id).copied()
     }
@@ -223,8 +236,7 @@ impl AstTree {
         self.collect_subtree(id, &mut to_remove_vec);
 
         // Build HashSet for O(1) membership test used in retain() below.
-        let to_remove: HashMap<NodeId, ()> =
-            to_remove_vec.iter().map(|&rid| (rid, ())).collect();
+        let to_remove: HashSet<NodeId> = to_remove_vec.iter().copied().collect();
 
         // Remove from parent's children
         if let Some(parent_id) = self.parent_of(id) {
@@ -234,12 +246,12 @@ impl AstTree {
         }
 
         // Remove from parent_index — O(1) per entry
-        for &rid in to_remove.keys() {
+        for &rid in &to_remove {
             self.parent_index.remove(&rid);
         }
 
-        // Remove nodes — O(1) per node via HashMap lookup instead of O(n) Vec scan
-        self.nodes.retain(|n| !to_remove.contains_key(&n.id));
+        // Remove nodes — O(1) per node via HashSet lookup instead of O(n) Vec scan
+        self.nodes.retain(|n| !to_remove.contains(&n.id));
         self.index.clear();
         for (idx, node) in self.nodes.iter().enumerate() {
             self.index.insert(node.id, idx);
@@ -256,8 +268,9 @@ impl AstTree {
     }
 
     /// Compute Merkle hash of a subtree (FNV-1a)
+    #[must_use]
     pub fn subtree_hash(&self, id: NodeId) -> u64 {
-        let mut h: u64 = 0xcbf29ce484222325;
+        let mut h: u64 = 0xcbf2_9ce4_8422_2325;
         self.hash_node(id, &mut h);
         h
     }
@@ -266,10 +279,10 @@ impl AstTree {
         if let Some(node) = self.get_node(id) {
             // Hash kind + label
             *h ^= node.kind as u64;
-            *h = h.wrapping_mul(0x100000001b3);
+            *h = h.wrapping_mul(0x0000_0100_0000_01b3);
             for &b in node.label.as_bytes() {
                 *h ^= b as u64;
-                *h = h.wrapping_mul(0x100000001b3);
+                *h = h.wrapping_mul(0x0000_0100_0000_01b3);
             }
             // Hash children recursively
             for &child_id in &node.children {
@@ -372,12 +385,8 @@ mod tests {
     #[test]
     fn test_add_node_with_value_stores_value() {
         let mut tree = AstTree::new();
-        let id = tree.add_node_with_value(
-            AstNodeKind::Parameter,
-            "radius",
-            NodeValue::Float(3.14),
-            0,
-        );
+        let id =
+            tree.add_node_with_value(AstNodeKind::Parameter, "radius", NodeValue::Float(3.14), 0);
         assert_eq!(tree.get_node(id).unwrap().value, NodeValue::Float(3.14));
     }
 
@@ -449,9 +458,9 @@ mod tests {
         assert_eq!(NodeValue::None.serialized_size(), 1);
         assert_eq!(NodeValue::Int(0).serialized_size(), 9);
         assert_eq!(NodeValue::Float(0.0).serialized_size(), 9);
-        assert_eq!(NodeValue::Text(String::from("hi")).serialized_size(), 5);  // 3+2
+        assert_eq!(NodeValue::Text(String::from("hi")).serialized_size(), 5); // 3+2
         assert_eq!(NodeValue::Ident(String::from("abc")).serialized_size(), 6); // 3+3
-        assert_eq!(NodeValue::Bytes(vec![1, 2]).serialized_size(), 5);          // 3+2
+        assert_eq!(NodeValue::Bytes(vec![1, 2]).serialized_size(), 5); // 3+2
     }
 
     #[test]

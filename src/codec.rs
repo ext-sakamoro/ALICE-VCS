@@ -1,4 +1,4 @@
-//! Varint patch codec — compact binary serialization for DiffOp patches
+//! Varint patch codec — compact binary serialization for `DiffOp` patches
 //!
 //! Encodes AST diff operations into a compact byte stream using LEB128
 //! varint encoding.  Typical patches are 4-12 bytes per operation vs
@@ -185,7 +185,7 @@ fn decode_string(data: &[u8], pos: &mut usize) -> Option<String> {
 
 // ── DiffOp Codec ───────────────────────────────────────────────────────
 
-/// Encode a single DiffOp into the buffer.
+/// Encode a single `DiffOp` into the buffer.
 pub fn encode_op(op: &DiffOp, buf: &mut Vec<u8>) {
     match op {
         DiffOp::Insert {
@@ -239,7 +239,7 @@ pub fn encode_op(op: &DiffOp, buf: &mut Vec<u8>) {
     }
 }
 
-/// Decode a single DiffOp from the buffer.
+/// Decode a single `DiffOp` from the buffer.
 pub fn decode_op(data: &[u8], pos: &mut usize) -> Option<DiffOp> {
     if *pos >= data.len() {
         return None;
@@ -304,9 +304,10 @@ pub fn decode_op(data: &[u8], pos: &mut usize) -> Option<DiffOp> {
     }
 }
 
-/// Encode a full patch (list of DiffOps) into a byte buffer.
+/// Encode a full patch (list of `DiffOps`) into a byte buffer.
 ///
 /// Format: `[varint: op_count] [op1] [op2] ...`
+#[must_use]
 pub fn encode_patch(ops: &[DiffOp]) -> Vec<u8> {
     let mut buf = Vec::new();
     encode_usize(ops.len(), &mut buf);
@@ -317,6 +318,7 @@ pub fn encode_patch(ops: &[DiffOp]) -> Vec<u8> {
 }
 
 /// Decode a full patch from a byte buffer.
+#[must_use]
 pub fn decode_patch(data: &[u8]) -> Option<Vec<DiffOp>> {
     let mut pos = 0;
     let count = decode_usize(data, &mut pos)?;
@@ -328,6 +330,7 @@ pub fn decode_patch(data: &[u8]) -> Option<Vec<DiffOp>> {
 }
 
 /// Encoded patch size in bytes (without actually allocating).
+#[must_use]
 pub fn encoded_patch_size(ops: &[DiffOp]) -> usize {
     encode_patch(ops).len()
 }
@@ -567,9 +570,7 @@ mod tests {
 
     #[test]
     fn large_node_id_varint() {
-        let op = DiffOp::Delete {
-            node_id: 100_000,
-        };
+        let op = DiffOp::Delete { node_id: 100_000 };
         let mut buf = Vec::new();
         encode_op(&op, &mut buf);
         let mut pos = 0;
@@ -697,7 +698,11 @@ mod tests {
     fn encoded_patch_size_matches_actual() {
         let ops = vec![
             DiffOp::Delete { node_id: 1 },
-            DiffOp::Move { node_id: 2, new_parent_id: 0, new_index: 1 },
+            DiffOp::Move {
+                node_id: 2,
+                new_parent_id: 0,
+                new_index: 1,
+            },
         ];
         let actual = encode_patch(&ops).len();
         let reported = encoded_patch_size(&ops);

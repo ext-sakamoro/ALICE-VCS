@@ -7,14 +7,14 @@
 //! Author: Moroya Sakamoto
 
 #[cfg(not(feature = "std"))]
-use alloc::{string::String, vec::Vec};
-#[cfg(not(feature = "std"))]
 use alloc::collections::BTreeSet as HashSet;
+#[cfg(not(feature = "std"))]
+use alloc::{string::String, vec::Vec};
 #[cfg(feature = "std")]
 use std::collections::HashSet;
 
-use crate::diff::DiffOp;
 use crate::ast::NodeId;
+use crate::diff::DiffOp;
 
 /// Merge conflict
 #[derive(Debug, Clone)]
@@ -40,6 +40,7 @@ pub struct MergeResult {
 
 impl MergeResult {
     /// True if merge is clean (no conflicts)
+    #[must_use]
     pub fn is_clean(&self) -> bool {
         self.conflicts.is_empty()
     }
@@ -52,6 +53,7 @@ impl MergeResult {
 ///
 /// Non-overlapping edits are combined. Overlapping edits on the
 /// same node produce Conflict entries.
+#[must_use]
 pub fn merge_patches(patch_a: &[DiffOp], patch_b: &[DiffOp]) -> MergeResult {
     let mut merged_ops = Vec::new();
     let mut conflicts = Vec::new();
@@ -114,14 +116,14 @@ pub fn merge_patches(patch_a: &[DiffOp], patch_b: &[DiffOp]) -> MergeResult {
 fn op_target_node(op: &DiffOp) -> NodeId {
     match op {
         DiffOp::Insert { parent_id, .. } => *parent_id,
-        DiffOp::Delete { node_id } => *node_id,
-        DiffOp::Update { node_id, .. } => *node_id,
-        DiffOp::Relabel { node_id, .. } => *node_id,
-        DiffOp::Move { node_id, .. } => *node_id,
+        DiffOp::Delete { node_id }
+        | DiffOp::Update { node_id, .. }
+        | DiffOp::Relabel { node_id, .. }
+        | DiffOp::Move { node_id, .. } => *node_id,
     }
 }
 
-/// Collect all unique node IDs affected by a patch — O(1) insert via HashSet
+/// Collect all unique node IDs affected by a patch — O(1) insert via `HashSet`
 fn affected_nodes(ops: &[DiffOp]) -> HashSet<NodeId> {
     let mut nodes = HashSet::new();
     for op in ops {
@@ -250,9 +252,7 @@ mod tests {
 
     #[test]
     fn test_merge_many_non_overlapping() {
-        let patch_a: Vec<DiffOp> = (0u32..10)
-            .map(|i| DiffOp::Delete { node_id: i })
-            .collect();
+        let patch_a: Vec<DiffOp> = (0u32..10).map(|i| DiffOp::Delete { node_id: i }).collect();
         let patch_b: Vec<DiffOp> = (100u32..110)
             .map(|i| DiffOp::Delete { node_id: i })
             .collect();
@@ -316,7 +316,11 @@ mod tests {
         let c = &result.conflicts[0];
         assert_eq!(c.ops_a.len(), 1);
         assert_eq!(c.ops_b.len(), 1);
-        assert!(matches!(&c.ops_a[0], DiffOp::Update { new_value, .. } if *new_value == NodeValue::Float(2.0)));
-        assert!(matches!(&c.ops_b[0], DiffOp::Update { new_value, .. } if *new_value == NodeValue::Float(99.0)));
+        assert!(
+            matches!(&c.ops_a[0], DiffOp::Update { new_value, .. } if *new_value == NodeValue::Float(2.0))
+        );
+        assert!(
+            matches!(&c.ops_b[0], DiffOp::Update { new_value, .. } if *new_value == NodeValue::Float(99.0))
+        );
     }
 }

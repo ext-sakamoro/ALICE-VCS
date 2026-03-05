@@ -6,7 +6,7 @@
 //! Author: Moroya Sakamoto
 
 #[cfg(not(feature = "std"))]
-use alloc::{vec::Vec, collections::BTreeMap as HashMap};
+use alloc::{collections::BTreeMap as HashMap, vec::Vec};
 #[cfg(feature = "std")]
 use std::collections::HashMap;
 
@@ -24,7 +24,7 @@ struct Snapshot {
     parents: Vec<Hash>,
 }
 
-/// Content-addressed snapshot store (O(1) lookup via HashMap)
+/// Content-addressed snapshot store (O(1) lookup via `HashMap`)
 pub struct SnapshotStore {
     snapshots: HashMap<Hash, Snapshot>,
 }
@@ -36,6 +36,7 @@ impl Default for SnapshotStore {
 }
 
 impl SnapshotStore {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             snapshots: HashMap::new(),
@@ -49,7 +50,7 @@ impl SnapshotStore {
         let mut commit_hash = hash;
         for &p in &parents {
             commit_hash ^= p;
-            commit_hash = commit_hash.wrapping_mul(0x100000001b3);
+            commit_hash = commit_hash.wrapping_mul(0x0000_0100_0000_01b3);
         }
 
         self.snapshots.insert(
@@ -63,31 +64,37 @@ impl SnapshotStore {
     }
 
     /// Retrieve a snapshot by hash
+    #[must_use]
     pub fn get(&self, hash: Hash) -> Option<&AstTree> {
         self.snapshots.get(&hash).map(|s| &s.tree)
     }
 
     /// Get parent hashes
+    #[must_use]
     pub fn parents(&self, hash: Hash) -> Option<&[Hash]> {
         self.snapshots.get(&hash).map(|s| s.parents.as_slice())
     }
 
     /// Check if hash exists
+    #[must_use]
     pub fn contains(&self, hash: Hash) -> bool {
         self.snapshots.contains_key(&hash)
     }
 
     /// Total stored snapshots
+    #[must_use]
     pub fn len(&self) -> usize {
         self.snapshots.len()
     }
 
     /// Is the store empty?
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.snapshots.is_empty()
     }
 
     /// List all stored snapshot hashes.
+    #[must_use]
     pub fn all_hashes(&self) -> Vec<Hash> {
         self.snapshots.keys().copied().collect()
     }
@@ -103,9 +110,9 @@ mod tests {
     use super::*;
     use crate::ast::{AstNodeKind, AstTree};
     #[cfg(not(feature = "std"))]
-    use alloc::vec;
-    #[cfg(not(feature = "std"))]
     use alloc::format;
+    #[cfg(not(feature = "std"))]
+    use alloc::vec;
 
     #[test]
     fn test_store_and_retrieve() {

@@ -79,6 +79,7 @@ pub mod diff;
 pub mod ffi;
 pub mod gc;
 pub mod merge;
+pub mod resolve;
 pub mod store;
 
 pub use ast::{AstNode, AstNodeKind, AstTree, NodeId, NodeValue};
@@ -87,4 +88,7 @@ pub use commit::{Branch, Commit, Repository};
 pub use diff::{diff_trees, DiffOp};
 pub use gc::{collect_garbage, dry_run, GcResult};
 pub use merge::{merge_patches, Conflict, MergeResult};
+pub use resolve::{
+    resolve_all, resolve_conflict, resolve_merge, resolve_selective, ResolutionStrategy,
+};
 pub use store::{Hash, SnapshotStore};

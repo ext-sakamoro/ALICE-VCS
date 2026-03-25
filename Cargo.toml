@@ -2,7 +2,7 @@
 name = "alice-vcs"
 version = "0.1.0"
 edition = "2021"
-authors = ["Moroya Sakamoto"]
+authors = ["Moroya Sakamoto <sakamoro@alicelaw.net>"]
 description = "Procedural Version Control — Don't diff lines, diff the AST"
 license = "AGPL-3.0"
 repository = "https://github.com/ext-sakamoro/ALICE-VCS"

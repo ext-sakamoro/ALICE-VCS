@@ -1,6 +1,6 @@
 [package]
 name = "alice-vcs"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Moroya Sakamoto <sakamoro@alicelaw.net>"]
 description = "Procedural Version Control — Don't diff lines, diff the AST"
@@ -16,15 +16,16 @@ name = "alice_vcs"
 path = "src/lib.rs"
 
 [features]
-default = []
+default = ["std", "auth"]
 std = []
 ffi = ["std"]     # C/C++/C# FFI bindings
 sdf = ["std"]     # ALICE-SDF AST diff (future)
 sync = ["std"]    # ALICE-Sync P2P replication (future)
 db = ["std"]      # ALICE-DB snapshot storage (future)
-auth = ["std"]    # ALICE-Auth commit signing (future)
+auth = ["std", "dep:alice-blockchain"]   # signed_commit via Ed25519
 
 [dependencies]
+alice-blockchain = { path = "../ALICE-Blockchain", optional = true }
 # ALICE ecosystem integrations (future)
 # alice-sdf = { path = "../ALICE-SDF", optional = true, default-features = false }
 # alice-sync = { path = "../ALICE-Sync", optional = true, default-features = false }

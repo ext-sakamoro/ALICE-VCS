@@ -80,6 +80,10 @@ pub mod ffi;
 pub mod gc;
 pub mod merge;
 pub mod resolve;
+#[cfg(feature = "auth")]
+pub mod signed_commit;
+#[cfg(feature = "auth")]
+pub use signed_commit::{CommitChain, CommitPayload, SignedCommit};
 pub mod store;
 
 pub use ast::{AstNode, AstNodeKind, AstTree, NodeId, NodeValue};

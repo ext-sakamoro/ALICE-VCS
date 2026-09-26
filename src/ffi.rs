@@ -403,7 +403,9 @@ pub unsafe extern "C" fn alice_vcs_string_free(s: *mut c_char) {
 /// Get library version string.
 #[no_mangle]
 pub extern "C" fn alice_vcs_version() -> *const c_char {
-    c"0.1.0".as_ptr()
+    // 版数は Cargo.toml から取る (literal は bump 時に drift して host に嘘を返す)
+    const VERSION_C: &str = concat!(env!("CARGO_PKG_VERSION"), "\0");
+    VERSION_C.as_ptr().cast()
 }
 
 // ============================================================================
@@ -596,6 +598,7 @@ mod tests {
     fn test_version() {
         let v = alice_vcs_version();
         let version = unsafe { CStr::from_ptr(v) }.to_str().unwrap();
-        assert_eq!(version, "0.1.0");
+        // FFI が返す版数は Cargo.toml の version と常に一致する
+        assert_eq!(version, env!("CARGO_PKG_VERSION"));
     }
 }

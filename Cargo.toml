@@ -22,10 +22,10 @@ ffi = ["std"]     # C/C++/C# FFI bindings
 sdf = ["std"]     # ALICE-SDF AST diff (future)
 sync = ["std"]    # ALICE-Sync P2P replication (future)
 db = ["std"]      # ALICE-DB snapshot storage (future)
-auth = ["std", "dep:alice-blockchain"]   # signed_commit via Ed25519
+auth = ["std", "dep:alice-sign"]   # signed_commit via Ed25519
 
 [dependencies]
-alice-blockchain = { path = "../ALICE-Blockchain", optional = true }
+alice-sign = { version = "0.1", git = "https://github.com/ext-sakamoro/ALICE-Sign", rev = "5420e71fbbf47dd1202b6abcb3c885ef3aa176ca", optional = true }
 # ALICE ecosystem integrations (future)
 # alice-sdf = { path = "../ALICE-SDF", optional = true, default-features = false }
 # alice-sync = { path = "../ALICE-Sync", optional = true, default-features = false }

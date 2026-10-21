@@ -20,7 +20,7 @@
 //! - **`SOC2 CC7.1`** — the entity uses detection and monitoring
 //!   procedures; git-style signed commits are an accepted control.
 //!
-//! Cryptographic primitives are provided by `alice-blockchain` (`Ed25519`).
+//! Cryptographic primitives are provided by `alice-sign` (`Ed25519`).
 //!
 //! This module requires the `std` feature.
 
@@ -32,7 +32,7 @@
     clippy::cast_possible_truncation
 )]
 
-use alice_blockchain::signature::{KeyPair, PublicKey, Signature};
+use alice_sign::signature::{KeyPair, PublicKey, Signature};
 
 // ---------------------------------------------------------------------------
 // CommitPayload

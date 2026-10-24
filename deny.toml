@@ -39,7 +39,7 @@ allow = [
 # AGPL-3.0-only side
 [[licenses.exceptions]]
 name = "alice-vcs"
-allow = ["AGPL-3.0-only"]
+allow = ["LicenseRef-Proprietary"]
 
 [bans]
 multiple-versions = "warn"

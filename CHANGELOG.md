@@ -4,6 +4,9 @@ All notable changes to ALICE-VCS will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- `alice-sign` の git rev を 8a1b00d に上げた (HMAC-SHA256 の追加のみ、使っている API と byte 列は同じ)
+
 ### Security
 - CI: `security-audit.yml` を追加 毎回新しい解決で `cargo audit` と `cargo deny --all-features check all` を走らせ、解決と deny の graph がこの crate を含むこと (0 件は失敗) を検査する ignore する勧告は無い 週次は木曜 04:05 UTC
 - `deny.toml` を追加: alice-vcs の AGPL 側を crate 単位の exception で許可、alice-sign の git source を許可

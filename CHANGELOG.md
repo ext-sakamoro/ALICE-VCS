@@ -5,6 +5,7 @@ All notable changes to ALICE-VCS will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- `scripts/sibling_coverage_guard.py` と試験を共有の新しい bytes に揃えた (git の branch = main で引く alice-* も sibling として数える)
 - `alice-sign` の git rev を 8a1b00d に上げた (HMAC-SHA256 の追加のみ、使っている API と byte 列は同じ)
 
 ### Security

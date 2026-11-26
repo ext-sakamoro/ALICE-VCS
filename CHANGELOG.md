@@ -5,6 +5,7 @@ All notable changes to ALICE-VCS will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- security-audit: cargo-audit と cargo-deny を taiki-e/install-action (commit で固定) の prebuilt で入れ、版を cargo-deny 0.22.1 / cargo-audit 0.23.0 に固定した (版の無い cargo install は rust-toolchain 1.92.0 で cargo-deny 0.22.1 を build できなかった)
 - `scripts/sibling_coverage_guard.py` と試験を共有の新しい bytes に揃えた (git の branch = main で引く alice-* も sibling として数える)
 - `alice-sign` の git rev を 8a1b00d に上げた (HMAC-SHA256 の追加のみ、使っている API と byte 列は同じ)
 
